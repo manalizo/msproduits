@@ -14,6 +14,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URLConnection;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,22 +97,29 @@ public class ProductController {
         }
     }
 
-    // Endpoint to serve the product image
+
+
+
     @GetMapping("/{id}/image")
-    public ResponseEntity<FileSystemResource> getProductImage(@PathVariable int id) {
+    public ResponseEntity<String> getProductImage(@PathVariable int id) {
         // Fetch the product from the database
         Product product = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
 
         // Retrieve the image path from the product
-        String imagePath = product.getImage();
+        String imagePath = product.getImage();  // Assuming this returns the file path of the image
 
-        // Create a FileSystemResource for the image
-        FileSystemResource resource = new FileSystemResource(new File(imagePath));
+        try {
+            // Read the image file as a byte array
+            byte[] imageBytes = Files.readAllBytes(Paths.get(imagePath));
 
-        // Return the image file with appropriate headers
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
-                .contentType(MediaType.IMAGE_JPEG)  // Adjust according to the image type
-                .body(resource);
+            // Convert the byte array to a base64 encoded string using java.util.Base64
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+
+            // Return the base64 encoded image string
+            return ResponseEntity.ok(base64Image);
+        } catch (Exception e) {
+            throw new RuntimeException("Error encoding image to Base64", e);
+        }
     }
+
 }
